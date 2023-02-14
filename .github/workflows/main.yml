@@ -14,6 +14,20 @@ jobs:
     name: Build and test
     runs-on: ubuntu-latest
 
+    services:
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          # Maps tcp port 5432 on service container to the host
+          - 5432:5432
+
     steps:
     - uses: actions/checkout@v3
     - name: Set up Elixir
@@ -23,13 +37,17 @@ jobs:
         otp-version: '25.2' # Define the OTP version [required]
       env:
         ImageOS: ubuntu20
-    - name: Restore dependencies cache
-      uses: actions/cache@v3
+    - name: Retrieve Mix Dependencies Cache
+      uses: actions/cache@v1
+      id: mix-cache # id to use in retrieve action
       with:
         path: deps
-        key: ${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}
-        restore-keys: ${{ runner.os }}-mix-
-    - name: Install dependencies
-      run:  mix deps.get
+        key: ${{ runner.os }}-${{ matrix.otp }}-${{ matrix.elixir }}-mix-${{ hashFiles(format('{0}{1}', github.workspace, '/mix.lock')) }}
+    - name: Install Dependencies
+      if: steps.mix-cache.outputs.cache-hit != 'true'
+      run: |
+        mix local.rebar --force
+        mix local.hex --force
+        mix deps.get
     - name: Run tests
       run:  mix test
