@@ -1,6 +1,6 @@
 # Papahome
 
-[![build](https://github.com/saleyn/papahome/actions/workflows/mail.yml/badge.svg)](https://github.com/saleyn/papahome/actions/workflows/main.yml)
+[![build](https://github.com/saleyn/papahome/actions/workflows/main.yml/badge.svg)](https://github.com/saleyn/papahome/actions/workflows/main.yml)
 
 ## Assignment
 
