@@ -218,10 +218,12 @@ defmodule Papahome.CLI do
   defp parse([]),    do: help("missing required options", "type: #{:escript.script_name} help")
   defp parse(other), do: help("invalid options",          other)
 
+  @spec help(String.t, list|String.t) :: no_return
   defp help(prefix, args),        do: help(prefix, args, [])
   defp help(prefix, unknown, []), do: raise prefix <> ": #{inspect(unknown)}"
   defp help(prefix, [], unknown), do: raise prefix <> ": #{inspect(unknown)}"
 
+  @spec error(Ecto.Changeset.t) :: no_return
   defp error(%Ecto.Changeset{} = changeset) do
     error = Ecto.Changeset.traverse_errors(changeset, fn {message, opts} ->
       Regex.replace(~r"%{(\w+)}", message, fn _, key ->

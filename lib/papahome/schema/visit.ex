@@ -74,7 +74,7 @@ defmodule Papahome.Visit do
   of the member's available minutes.
   """
   @spec create(String.t, :max | integer, DateTime.t, [String.t]) ::
-          {:ok, Visit.t} | {:error, any()}
+          {:ok, t} | {:error, any()}
   def   create(member_email, minutes, %DateTime{} = date, tasks \\ [])
   when  is_binary(member_email) and (is_integer(minutes) or minutes == :max) and
         is_list(tasks)

@@ -1,4 +1,4 @@
-all: compile escriptize
+all: compile dialyzer escriptize
 
 compile: deps
 	mix $@
@@ -14,6 +14,9 @@ bootstrap:
 
 test:
 	mix $@
+
+dialyzer:
+	mix $@ --quiet
 
 run:
 	iex -S mix

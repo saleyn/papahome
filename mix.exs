@@ -30,6 +30,7 @@ defmodule Papahome.MixProject do
       {:postgrex,          ">= 0.0.0"},
       {:ecto_sql,          "~> 3.6"},
       {:typed_ecto_schema, "~> 0.4.1", runtime: false},
+      {:dialyxir,          "~> 1.0",   only: [:dev], runtime: false},
     ]
   end
 
