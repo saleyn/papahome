@@ -1,5 +1,7 @@
 # Papahome
 
+[![build](https://github.com/saleyn/papahome/actions/workflows/mail.yml/badge.svg)](https://github.com/saleyn/papahome/actions/workflows/main.yml)
+
 ## Assignment
 
 Create a "Home Visit Service" application with the following functionality:
