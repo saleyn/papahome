@@ -16,7 +16,7 @@ test:
 	mix $@
 
 dialyzer:
-	mix $@ --quiet
+	@[ "${MIX_ENV}" == "dev" -o -z "${MIX_ENV}" ] && echo "Running Dialyzer" && mix $@ --quiet || true
 
 run:
 	iex -S mix

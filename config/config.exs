@@ -9,4 +9,7 @@ config :papahome,
 config :logger,
   level: :info
 
-import_config("#{config_env()}.exs")
+# Only load environment-specific config file if one exists
+env_file = "#{config_env()}.exs"
+
+File.exists?("config/#{env_file}") && import_config(env_file)
