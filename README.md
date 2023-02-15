@@ -221,6 +221,10 @@ Created visit for member benny@gmail.com: ID=1
 $ ./papahome create visit benny@gmail.com --minutes=max --task=conversation
 Created visit for member benny@gmail.com: ID=2
 
+# Check that a member cannot create visits if there's not enough minutes in the balance
+$ ./papahome create visit benny@gmail.com --minutes=10 --task=conversation
+ERROR: member doesn't have enough minutes in the balance
+
 $ ./papahome create visit alice@gmail.com --minutes=50 --task=walking
 Created visit for member alice@gmail.com: ID=3
 

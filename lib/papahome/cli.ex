@@ -75,7 +75,9 @@ defmodule Papahome.CLI do
     try do
       parse(options)
     rescue err ->
-      IO.puts("ERROR: #{inspect(err)}\n\nStack:\n#{__STACKTRACE__}")
+      IO.puts("ERROR: #{Exception.message(err)}")
+      IO.puts("  Stack:")
+      Exception.format_stacktrace(__STACKTRACE__) |> IO.puts()
       System.halt(1)
     end
   end
