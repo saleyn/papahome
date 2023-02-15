@@ -139,6 +139,9 @@ Below is the list of supported commands:
 Options:
 ========
 
+help | -h | --help
+  - Print this help screen
+
 create [member|pal|pal-member|member-pal] Email --first-name=First --last-name=Last [--balance=NNN]
   - Create a member, a pal or both
 
