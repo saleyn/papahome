@@ -4,7 +4,9 @@ defmodule Papahome.CLI do
 
   This CLI is invokable directly from a Linux shell.
 
-  E.g.
+  ## Example
+
+    $ ./papahome help
 
   """
   alias Papahome.{User, Visit, Transaction}
