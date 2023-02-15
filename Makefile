@@ -20,3 +20,5 @@ dialyzer:
 
 run:
 	iex -S mix
+
+.PHONY: test
