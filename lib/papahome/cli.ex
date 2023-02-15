@@ -191,7 +191,7 @@ defmodule Papahome.CLI do
       end)
   end
 
-  ## List all users
+  ## List all visits
   defp parse(["list", "visits"]) do
     IO.puts("#{pad("ID", 9)} | #{pad("Date", 20)} | #{pad("Minutes",20)} | #{pad("Member",30)} | Tasks")
     IO.puts("#{sep(9)}-+-#{sep(20)}-+-#{sep(20)}-+-#{sep(30)}-+-------------")
@@ -202,7 +202,7 @@ defmodule Papahome.CLI do
       end)
   end
 
-  ## Get user information
+  ## Add minutes to a member
   defp parse(["add", "minutes", email, minutes]) do
     minutes =
       case Integer.parse(minutes) do
