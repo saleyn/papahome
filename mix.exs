@@ -30,16 +30,19 @@ defmodule Papahome.MixProject do
       {:postgrex,          ">= 0.0.0"},
       {:ecto_sql,          "~> 3.6"},
       {:typed_ecto_schema, "~> 0.4.1", runtime: false},
-      {:dialyxir,          "~> 1.0",   only: [:dev], runtime: false},
+      {:dialyxir,          "~> 1.0",   runtime: false, only: [:dev]},
     ]
   end
 
   defp aliases do
     [
-      "ecto.setup":   ["ecto.create", "ecto.migrate"],
-      "ecto.reset":   ["ecto.drop",   "ecto.setup"],
-      test:           ["ecto.drop --quiet", "ecto.create --quiet", "ecto.migrate --quiet", "test"],
-      "test.ci":      ["test"],
+      "ecto.setup": ["ecto.create", "ecto.migrate"],
+      "ecto.reset": ["ecto.drop",   "ecto.setup"],
+      test:         ["ecto.drop --quiet",
+                     "ecto.create --quiet",
+                     "ecto.migrate --quiet",
+                     "test"
+                    ]
     ]
   end
 end
