@@ -71,6 +71,10 @@ creating users, visits and fulfilling visits.
 The fee percentage (defaults to 15%) is made configurable, and can be customized
 using the `config :papahome, :fee_overhead` option.
 
+The main actions which create a visit request and fulfill visits require updates
+to multiple tables.  As such these updates are implemented using `Ecto.Multi` to
+ensure atomic updates in the context of a single transaction.
+
 ## Security
 
 Given the time limits for this assignment, there's no explicit authentication
