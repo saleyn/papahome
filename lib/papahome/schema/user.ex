@@ -7,7 +7,7 @@ defmodule Papahome.User do
   import Ecto.Changeset
   import Ecto.Query
   alias  Ecto.Multi
-  alias  Papahome.{Repo, Visit, Transaction}
+  alias  Papahome.{Repo, Transaction, Visit}
 
   typed_schema "user" do
     field      :email,           :string
@@ -62,17 +62,10 @@ defmodule Papahome.User do
   def   create(attrs) do
     Multi.new()
     ## (1) insert a user record, and if it's a member, add signup credit
-    |> Multi.run(:user, fn _repo, _cset ->
+    |> Multi.insert(:user, fn _cset ->
       %__MODULE__{}
       |> changeset(attrs)
-      |> then(fn cs ->
-        if get_field(cs, :is_member) do
-          add_member_signup_credit(cs)
-        else
-          cs
-        end
-      end)
-      |> Repo.insert()
+      |> then(& get_field(&1, :is_member) && add_member_signup_credit(&1) || &1)
     end)
     ## (2) if a member was issued a signup credit, record that in the transaction table
     |> Multi.run(:signup_credit, fn _repo, %{user: user} ->
@@ -98,9 +91,7 @@ defmodule Papahome.User do
   end
 
   @doc "List all users"
-  def list() do
-    from(u in __MODULE__) |> Repo.all()
-  end
+  def list, do: from(u in __MODULE__) |> Repo.all()
 
   @doc "Get user by ID"
   @spec get(integer) :: t | nil
@@ -137,11 +128,10 @@ defmodule Papahome.User do
   def add_minutes(member_email, minutes) when is_integer(minutes) and minutes > 0 do
     Multi.new()
     ## (1) add balance to the member's record
-    |> Multi.run(:user, fn _repo, _changes ->
+    |> Multi.update(:user, fn _changes ->
       case find(member_email) do
         %__MODULE__{is_member: true, balance_minutes: curr_minutes} = user ->
           changeset(user, %{balance_minutes: curr_minutes + minutes})
-          |> Repo.update()
         %__MODULE__{is_member: false} ->
           {:error, "user must be a member"}
         nil ->
@@ -168,9 +158,38 @@ defmodule Papahome.User do
     |> Repo.one() || 0
   end
 
-  @doc "Get the number of available minutes for a given member"
-  def   available_minutes(%__MODULE__{is_member: true, balance_minutes: balance} = member) do
-    max(0, balance - requested_minutes(member.id))
+  @doc "Get the number of available minutes for a given user"
+  def   available_balance(%__MODULE__{is_member: true, balance_minutes: bal} = member) do
+    max(0, bal - requested_minutes(member.id))
+  end
+  def   available_balance(%__MODULE__{is_member: false, balance_minutes: bal}), do: bal
+
+  @doc """
+  Calculate user's available minutes by locking the user record.
+
+  This function is used for ensuring that a new visit request doesn't exceed the
+  member's balance when more than one visit requests are executed concurrently.
+  """
+  def available_balance_with_lock(%Multi{} = multi, member_id) when is_integer(member_id) do
+    multi
+    ## (1) select member's balance and lock the record
+    |> Multi.one(:balance_minutes, fn _ ->
+      from(u in __MODULE__,
+        where:  u.id == ^member_id,
+        select: u.balance_minutes,
+        lock:   fragment("FOR UPDATE OF ?", u)
+      )
+    end)
+    ## (2) calculate the total number of minutes in pending visit requests
+    |> Multi.one(:requested_minutes, fn _ ->
+      from(v in Visit,
+      where:  v.member_id == ^member_id and is_nil(v.pal_id),
+      select: sum(v.minutes))
+    end)
+    ## (3) get the available balance as the difference between (1) and (2)
+    |> Multi.run(:available_balance, fn _, %{balance_minutes: bal, requested_minutes: req} ->
+      {:ok, max(0, bal - (req || 0))}
+    end)
   end
 
   ##----------------------------------------------------------------------------

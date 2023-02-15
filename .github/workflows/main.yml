@@ -58,5 +58,7 @@ jobs:
       run:  |
         mix deps.get
         mix dialyzer
+    - name: Run credo
+      run:  mix credo suggest --strict
     - name: Run tests
       run:  mix test

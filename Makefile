@@ -1,4 +1,4 @@
-all: compile dialyzer escriptize
+all: compile static-check escriptize
 
 compile: deps
 	mix $@
@@ -15,8 +15,11 @@ bootstrap:
 test:
 	mix $@
 
-dialyzer:
-	@[ "${MIX_ENV}" == "dev" -o -z "${MIX_ENV}" ] && echo "Running Dialyzer" && mix $@ --quiet || true
+static-check:
+	@if [ "${MIX_ENV}" == "dev" -o -z "${MIX_ENV}" ]; then \
+   echo "Running dializer" && mix dialyzer --quiet; \
+  echo "Running credo"    && mix credo --strict; \
+	fi
 
 run:
 	iex -S mix

@@ -9,7 +9,9 @@ defmodule Papahome.CLI do
     $ ./papahome help
 
   """
-  alias Papahome.{User, Visit, Transaction}
+  alias Papahome.{Transaction, User, Visit}
+
+  @table_opts %{unicode: true, td_dir: :both, outline: [:top, :bottom], td_pad: %{}}
 
   @spec main([binary]) :: :ok | no_return
   def main([help]) when help in ["-h", "--help", "help"] do
@@ -72,14 +74,12 @@ defmodule Papahome.CLI do
   end
 
   def main(options) do
-    try do
-      parse(options)
-    rescue err ->
-      IO.puts("ERROR: #{Exception.message(err)}")
-      IO.puts("  Stack:")
-      Exception.format_stacktrace(__STACKTRACE__) |> IO.puts()
-      System.halt(1)
-    end
+    parse(options)
+  rescue err ->
+    IO.puts("ERROR: #{Exception.message(err)}")
+    IO.puts("  Stack:")
+    Exception.format_stacktrace(__STACKTRACE__) |> IO.puts()
+    System.halt(1)
   end
 
   ##----------------------------------------------------------------------------
@@ -154,20 +154,21 @@ defmodule Papahome.CLI do
   defp parse(["user", email]) do
     case User.find(email) do
       %User{id: id, first_name: first, last_name: last,
-            is_member: mem, is_pal: pal, balance_minutes: minutes} ->
-        IO.puts("""
-          User:     #{first} #{last} <#{email}>
-          UserID:   #{id}
-          IsMember: #{mem}
-          IsPal:    #{pal}
-          Balance:  #{minutes}
+            is_member: mem, is_pal: pal, balance_minutes: minutes} = user ->
+        IO.write("""
+          User:      #{first} #{last} <#{email}>
+          UserID:    #{id}
+          IsMember:  #{mem}
+          IsPal:     #{pal}
+          Balance:   #{minutes}
+          Available: #{User.available_balance(user)}
           """)
       nil ->
         raise "user #{email} not found"
     end
   end
 
-  ## List transacations for a given email
+  ## List transactions for a given email
   defp parse(["list", role, "transactions", email]) when role in ["member", "pal"] do
     case User.find(email) do
       %User{id: id, is_member: true} when role == "member" ->
@@ -182,26 +183,35 @@ defmodule Papahome.CLI do
   end
 
   ## List all users
+  @users_headers ["ID", "Email", "FirstName", "LastName", "Mem", "Pal", "Balance", "Available"]
+  @users_opts    %{@table_opts | td_pad: %{3 => :trailing, 4 => :trailing}}
+
   defp parse(["list", "users"]) do
-    IO.puts("#{pad("ID", 9)} | #{pad("Email", 20)} | #{pad("FirstName",20)} | #{pad("LastName",20)} | Mem | Pal | Balance")
-    IO.puts("#{sep(9)}-+-#{sep(20)}-+-#{sep(20)}-+-#{sep(20)}-+-----+-----+--------")
-    User.list()
-    |> Enum.each(fn %User{id: id, email: email, first_name: first, last_name: last,
-                          is_member: mem, is_pal: pal, balance_minutes: balance} ->
-        IO.puts("#{pad(id, 9)} | #{pad(email, 20)} | #{pad(first,20)} | #{pad(last,20)} | " <>
-                "#{mem && " x " || "   "} | #{pal && " x " || "   "} | #{balance}")
+    rows =
+      User.list()
+      |> Enum.map(fn u ->
+        [u.id, u.email, u.first_name, u.last_name, u.is_member && "x" || "",
+         u.is_pal && "x" || "", u.balance_minutes, User.available_balance(u)]
       end)
+    :stringx.pretty_print_table(@users_headers, rows, @users_opts)
   end
 
   ## List all visits
+  @visits_headers ["ID", "Date", "Minutes", "Member", "Tasks"]
+  @visits_opts    %{@table_opts | td_pad: %{4 => :trailing, 5 => :trailing}}
+
   defp parse(["list", "visits"]) do
-    IO.puts("#{pad("ID", 9)} | #{pad("Date", 20)} | #{pad("Minutes",20)} | #{pad("Member",30)} | Tasks")
-    IO.puts("#{sep(9)}-+-#{sep(20)}-+-#{sep(20)}-+-#{sep(30)}-+-------------")
-    Visit.list_available()
-    |> Enum.each(fn %Visit{id: id, member: %{email: mem}, date: date, minutes: minutes, tasks: tasks} ->
-        date = date |> DateTime.truncate(:second) |> DateTime.to_string()
-        IO.puts("#{pad(id, 9)} | #{date} | #{pad(minutes,20)} | #{pad(mem,30)} | #{Enum.join(tasks, ",")}")
-      end)
+    rows =
+      Visit.list_available()
+      |> Enum.map(fn %Visit{id: id, member: %{email: mem}, date: date, minutes: minutes, tasks: tasks} ->
+          date =
+            date
+            |> DateTime.truncate(:second)
+            |> DateTime.to_naive()
+            |> NaiveDateTime.to_string()
+          [id, date, minutes, mem, Enum.join(tasks, ",")]
+        end)
+    :stringx.pretty_print_table(@visits_headers, rows, @visits_opts)
   end
 
   ## Add minutes to a member
@@ -234,8 +244,7 @@ defmodule Papahome.CLI do
         opts |> Keyword.get(String.to_existing_atom(key), key) |> to_string()
       end)
     end)
-    |> Enum.map(fn {_, [v|_]} -> v end)
-    |> Enum.join("\n")
+    |> Enum.map_join("\n", fn {_, [v|_]} -> v end)
     error(error)
   end
 
@@ -263,24 +272,25 @@ defmodule Papahome.CLI do
     end
   end
 
+  @txn_headers ["ID", "VisitDate", "Member", "Pal", "Minutes", "Fee", "Description", "InsertedAt"]
+  @txn_opts    %{@table_opts | td_pad: %{3 => :trailing, 4 => :trailing, 7 => :trailing}}
+
   defp print_transactions(txns) do
-    IO.puts("#{pad("ID", 9)} | #{pad("VisitDate", 20)} | #{pad("Member", 20)} | #{pad("Pal", 20)} | Minutes | Fee   | Description")
-    IO.puts("#{sep(9)}-+-#{sep(20)}-+-#{sep(20)}-+-#{sep(20)}-+---------+-------+#{sep(12)}")
-    Enum.each(txns, &print_txn(&1))
+    rows = Enum.map(txns,
+      fn %Transaction{
+        id:         id,      member:      %User{email: member}, pal: pal,
+        minutes:    minutes, fee_minutes: fee, description: descr,
+        visited_at: date,    inserted_at: ts
+      } ->
+        date = date &&
+          date
+          |> DateTime.truncate(:second)
+          |> DateTime.to_naive()
+          |> NaiveDateTime.to_string()
+        ts = NaiveDateTime.to_string(ts)
+        [id, date, member, pal && pal.email, minutes, fee, descr, ts]
+      end)
+    :stringx.pretty_print_table(@txn_headers, rows, @txn_opts)
   end
-
-  defp print_txn(%Transaction{
-    id:         id,   member:  %User{email: member}, pal: pal,
-    visited_at: date, minutes: minutes, fee_minutes: fee, description: descr
-  }) do
-    date = date && date |> DateTime.truncate(:second) |> DateTime.to_string()
-    pal  = pal  && pal.email
-    IO.puts("#{pad(id, 9)} | #{pad(date, 20)} | #{pad(member, 20)} | #{pad(pal, 20)} | #{pad(minutes, 7)} | #{pad(fee, 5)} | #{descr}")
-  end
-
-  defp pad(str, len) when is_binary(str), do: String.pad_trailing(str, len)
-  defp pad(nil, len),                     do: String.pad_trailing("", len)
-  defp pad(str, len),                     do: inspect(str) |> String.pad_trailing(len)
-  defp sep(len),                          do: String.pad_trailing("", len, "-")
 
 end

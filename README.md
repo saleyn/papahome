@@ -44,6 +44,8 @@ visit requests for fulfillment.
 
 - We assume that dates are in UTC time zone.
 
+- All balance calculations are done in whole minutes using standard rounding.
+
 ## Design
 
 The application we are going to build will store data in a database and use Ecto
@@ -198,6 +200,11 @@ Below we illustrate the CLI in action by a walk-trough of basic functionality
 to create a member, a pal, request visit minutes, and fulfil a visit request.
 
 ```
+# NOTE: proper email input is validated:
+
+$ ./papahome create member benny_gmail.com --first-name=Ben --last-name=Worth
+ERROR: invalid email
+
 $ ./papahome create member benny@gmail.com --first-name=Ben --last-name=Worth
 Created member ID=1
 
@@ -208,21 +215,24 @@ $ ./papahome create pal-member alice@gmail.com --first-name=Alice --last-name=Go
 Created pal-member ID=3
 
 $ ./papahome list users
-ID        | Email                | FirstName            | LastName             | Mem | Pal | Balance
-----------+----------------------+----------------------+----------------------+-----+-----+--------
-1         | benny@gmail.com      | Ben                  | Worth                |  x  |     | 100
-2         | alex@gmail.com       | Alex                 | Moore                |     |  x  | 0
-3         | alice@gmail.com      | Alice                | Gore                 |  x  |  x  | 100
-
-$ ./papahome user benny@gmail.com
-User:     Ben Worth <benny@gmail.com>
-UserID:   1
-IsMember: true
-IsPal:    false
-Balance:  100
+───┬─────────────────┬───────────┬──────────┬─────┬─────┬─────────┬──────────
+ID │      Email      │ FirstName │ LastName │ Mem │ Pal │ Balance │ Available
+───┼─────────────────┼───────────┼──────────┼─────┼─────┼─────────┼──────────
+ 1 │ benny@gmail.com │ Ben       │ Worth    │  x  │     │     100 │       100
+ 2 │ alex@gmail.com  │ Alex      │ Moore    │     │  x  │       0 │         0
+ 3 │ alice@gmail.com │ Alice     │ Gore     │  x  │  x  │     100 │       100
+───┴─────────────────┴───────────┴──────────┴─────┴─────┴─────────┴──────────
 
 $ ./papahome create visit benny@gmail.com --minutes=60 --task=companionship
 Created visit for member benny@gmail.com: ID=1
+
+$ ./papahome user benny@gmail.com
+User:      Ben Worth <benny@gmail.com>
+UserID:    1
+IsMember:  true
+IsPal:     false
+Balance:   100
+Available: 40              <--- This is because there's a 60 min visit requested
 
 $ ./papahome create visit benny@gmail.com --minutes=max --task=conversation
 Created visit for member benny@gmail.com: ID=2
@@ -235,17 +245,19 @@ $ ./papahome create visit alice@gmail.com --minutes=50 --task=walking
 Created visit for member alice@gmail.com: ID=3
 
 $ ./papahome list visits
-ID        | Date                 | Minutes              | Member                         | Tasks
-----------+----------------------+----------------------+--------------------------------+-------------
-1         | 2023-02-15 15:44:35Z | 60                   | benny@gmail.com                | companionship
-2         | 2023-02-15 15:44:43Z | 40                   | benny@gmail.com                | conversation
-3         | 2023-02-15 15:44:58Z | 50                   | alice@gmail.com                | walking
+───┬─────────────────────┬─────────┬─────────────────┬──────────────
+ID │        Date         │ Minutes │     Member      │     Tasks
+───┼─────────────────────┼─────────┼─────────────────┼──────────────
+ 1 │ 2023-02-17 07:31:12 │      60 │ benny@gmail.com │ companionship
+ 2 │ 2023-02-17 07:32:42 │      40 │ benny@gmail.com │ conversation
+ 3 │ 2023-02-17 07:32:59 │      50 │ alice@gmail.com │ walking
+───┴─────────────────────┴─────────┴─────────────────┴──────────────
 
 $ ./papahome fulfill visit alex@gmail.com
 Visit fulfilled by pal alex@gmail.com: TxnID=2 Minutes=51 Fee=9
 
-$ ./papahome fulfill visit alex@gmail.com
-Visit fulfilled by pal alex@gmail.com: TxnID=3 Minutes=34 Fee=6
+$ ./papahome fulfill visit alice@gmail.com
+Visit fulfilled by pal alice@gmail.com: TxnID=4 Minutes=34 Fee=6
 
 $ ./papahome fulfill visit alice@gmail.com            # NOTE: Alice cannot fulfill her own visit requests!
 ERROR: no visits available at this time
@@ -257,27 +269,47 @@ $ ./papahome fulfill visit alex@gmail.com
 ERROR: no visits available at this time
 
 $ ./papahome list pal transactions alex@gmail.com
-ID        | VisitDate            | Member               | Pal                  | Minutes | Fee   | Description
-----------+----------------------+----------------------+----------------------+---------+-------+------------
-5         | 2023-02-15 15:44:58Z | alice@gmail.com      | alex@gmail.com       | 43      | 7     | fulfillment
-4         | 2023-02-15 15:44:43Z | benny@gmail.com      | alex@gmail.com       | 34      | 6     | fulfillment
-3         | 2023-02-15 15:44:35Z | benny@gmail.com      | alex@gmail.com       | 51      | 9     | fulfillment
+───┬─────────────────────┬─────────────────┬────────────────┬─────────┬─────┬─────────────┬────────────────────
+ID │      VisitDate      │     Member      │      Pal       │ Minutes │ Fee │ Description │     InsertedAt
+───┼─────────────────────┼─────────────────┼────────────────┼─────────┼─────┼─────────────┼────────────────────
+ 5 │ 2023-02-17 07:32:59 │ alice@gmail.com │ alex@gmail.com │      43 │   7 │ fulfillment │ 2023-02-16 07:33:49
+ 3 │ 2023-02-17 07:31:12 │ benny@gmail.com │ alex@gmail.com │      51 │   9 │ fulfillment │ 2023-02-16 07:33:25
+───┴─────────────────────┴─────────────────┴────────────────┴─────────┴─────┴─────────────┴────────────────────
+
+$ ./papahome list pal transactions alice@gmail.com
+───┬─────────────────────┬─────────────────┬─────────────────┬─────────┬─────┬─────────────┬────────────────────
+ID │      VisitDate      │     Member      │       Pal       │ Minutes │ Fee │ Description │     InsertedAt
+───┼─────────────────────┼─────────────────┼─────────────────┼─────────┼─────┼─────────────┼────────────────────
+ 4 │ 2023-02-17 07:32:42 │ benny@gmail.com │ alice@gmail.com │      34 │   6 │ fulfillment │ 2023-02-16 07:33:33
+───┴─────────────────────┴─────────────────┴─────────────────┴─────────┴─────┴─────────────┴────────────────────
+
+$ ./papahome user alice@gmail.com
+User:      Alice Gore <alice@gmail.com>
+UserID:    3
+IsMember:  true
+IsPal:     true
+Balance:   84                                        # NOTE: balance = 100 - 50 + 34 minutes
+Available: 84
 
 $ ./papahome list member transactions benny@gmail.com
-ID        | VisitDate            | Member               | Pal                  | Minutes | Fee   | Description
-----------+----------------------+----------------------+----------------------+---------+-------+------------
-4         | 2023-02-15 15:44:43Z | benny@gmail.com      | alex@gmail.com       | 34      | 6     | fulfillment
-3         | 2023-02-15 15:44:35Z | benny@gmail.com      | alex@gmail.com       | 51      | 9     | fulfillment
-1         |                      | benny@gmail.com      |                      | 100     | 0     | signup credit
+───┬─────────────────────┬─────────────────┬─────────────────┬─────────┬─────┬───────────────┬────────────────────
+ID │      VisitDate      │     Member      │       Pal       │ Minutes │ Fee │  Description  │     InsertedAt
+───┼─────────────────────┼─────────────────┼─────────────────┼─────────┼─────┼───────────────┼────────────────────
+ 4 │ 2023-02-17 07:32:42 │ benny@gmail.com │ alice@gmail.com │      34 │   6 │ fulfillment   │ 2023-02-16 07:33:33
+ 3 │ 2023-02-17 07:31:12 │ benny@gmail.com │ alex@gmail.com  │      51 │   9 │ fulfillment   │ 2023-02-16 07:33:25
+ 1 │                     │ benny@gmail.com │                 │     100 │   0 │ signup credit │ 2023-02-16 07:30:18
+───┴─────────────────────┴─────────────────┴─────────────────┴─────────┴─────┴───────────────┴────────────────────
 
 $ ./papahome add minutes benny@gmail.com 100
 added 100 to member: balance=100
 
 $ ./papahome list member transactions benny@gmail.com
-ID        | VisitDate            | Member               | Pal                  | Minutes | Fee   | Description
-----------+----------------------+----------------------+----------------------+---------+-------+------------
-6         |                      | benny@gmail.com      |                      | 100     | 0     | added minutes
-4         | 2023-02-15 15:44:43Z | benny@gmail.com      | alex@gmail.com       | 34      | 6     | fulfillment
-3         | 2023-02-15 15:44:35Z | benny@gmail.com      | alex@gmail.com       | 51      | 9     | fulfillment
-1         |                      | benny@gmail.com      |                      | 100     | 0     | signup credit
+───┬─────────────────────┬─────────────────┬─────────────────┬─────────┬─────┬───────────────┬────────────────────
+ID │      VisitDate      │     Member      │       Pal       │ Minutes │ Fee │  Description  │     InsertedAt
+───┼─────────────────────┼─────────────────┼─────────────────┼─────────┼─────┼───────────────┼────────────────────
+ 6 │                     │ benny@gmail.com │                 │     100 │   0 │ added minutes │ 2023-02-16 07:35:04
+ 4 │ 2023-02-17 07:32:42 │ benny@gmail.com │ alice@gmail.com │      34 │   6 │ fulfillment   │ 2023-02-16 07:33:33
+ 3 │ 2023-02-17 07:31:12 │ benny@gmail.com │ alex@gmail.com  │      51 │   9 │ fulfillment   │ 2023-02-16 07:33:25
+ 1 │                     │ benny@gmail.com │                 │     100 │   0 │ signup credit │ 2023-02-16 07:30:18
+───┴─────────────────────┴─────────────────┴─────────────────┴─────────┴─────┴───────────────┴────────────────────
 ```

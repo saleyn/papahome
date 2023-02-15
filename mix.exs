@@ -31,6 +31,8 @@ defmodule Papahome.MixProject do
       {:ecto_sql,          "~> 3.6"},
       {:typed_ecto_schema, "~> 0.4.1", runtime: false},
       {:dialyxir,          "~> 1.0",   runtime: false, only: [:dev]},
+      {:credo,             "~> 1.6",   runtime: false, only: [:dev, :test]},
+      {:util,              "~> 1.1"}
     ]
   end
 

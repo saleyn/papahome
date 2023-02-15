@@ -51,7 +51,7 @@ defmodule Papahome.Transaction do
     |> Repo.all()
   end
 
-  @doc "List all transactions for a given member"
+  @doc "List all transactions for a given pal"
   def list_for_pal(pal_id) do
     from(t in __MODULE__,
       where:    t.pal_id == ^pal_id,

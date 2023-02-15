@@ -7,7 +7,7 @@ defmodule Papahome.Visit do
   import Ecto.Changeset
   import Ecto.Query
   alias  Ecto.Multi
-  alias  Papahome.{Repo, User, Transaction}
+  alias  Papahome.{Repo, Transaction, User}
 
   typed_schema "visit" do
     belongs_to :member,       User,              null: false
@@ -43,7 +43,7 @@ defmodule Papahome.Visit do
   @doc """
   List available visits requested by members that haven't been fulfilled by pals.
 
-  If this call is passed a `pal_id` (i.e. it's made by a pal who's incuiring
+  If this call is passed a `pal_id` (i.e. it's made by a pal who's inquiring
   about available visits), it's assumed that a pal cannot see/fulfill his own
   visit requests if he's also a member.
   """
@@ -97,46 +97,12 @@ defmodule Papahome.Visit do
   when  is_binary(member_email) and (is_integer(minutes) or minutes == :max) and
         is_list(tasks)
   do
-    attrs = %{date: date, minutes: minutes, tasks: tasks}
-    now   =  DateTime.utc_now()
+    user  = User.find(member_email)
+    now   = DateTime.utc_now()
+    cmp   = DateTime.compare(date, now)
+    attrs = %{user: user, date: date, minutes: minutes, tasks: tasks, date_compare: cmp}
 
-    case DateTime.compare(date, now) do
-      :lt ->
-        {:error, "visit date must be in the future"}
-      _ ->
-        Multi.new()
-        ## (1) Make sure only a member can request a visit
-        |> Multi.run(:member, fn _repo, _ctx ->
-          case User.find(member_email) do
-            %User{is_member: true} = user ->
-              {:ok, user}
-            _ ->
-              {:error, "user must be an existing member"}
-          end
-        end)
-        ## (2) Make sure the member has enough minutes to schedule a request
-        |> Multi.run(:minutes, fn _repo, %{member: member} ->
-          remaining_minutes = User.available_minutes(member)
-          case minutes do
-            n when is_integer(n) and n > 0 and n <= remaining_minutes ->
-              {:ok, n}
-            :max when remaining_minutes > 0 ->
-              {:ok, remaining_minutes}
-            _ ->
-              {:error, "member doesn't have enough minutes in the balance"}
-          end
-        end)
-        ## (3) Insert the new visit record for the given number of minutes
-        |> Multi.insert(:visit, fn %{member: member, minutes: _minutes} = changes ->
-          attrs = Map.merge(attrs, changes) |> Map.put(:member_id, member.id)
-          changeset(%__MODULE__{}, attrs)
-        end)
-        |> Repo.transaction()
-        |> case do
-          {:ok, %{visit: visit}}   -> {:ok,    visit}
-          {:error, _key, value, _} -> {:error, value}
-        end
-    end
+    do_create(member_email, attrs)
   end
 
   @doc """
@@ -202,4 +168,49 @@ defmodule Papahome.Visit do
       {:error, _key, why,     _} -> {:error, why}
     end
   end
+
+  ##----------------------------------------------------------------------------
+  ## Internal functions
+  ##----------------------------------------------------------------------------
+
+  defp do_create(_member_email, %{date_compare: :lt}), do:
+    {:error, "visit date must be in the future"}
+
+  defp do_create(member_email, %{user: nil}), do:
+    {:error, "member #{member_email} not found"}
+
+  defp do_create(_, %{user: %User{is_member: false}}), do:
+    {:error, "user must be an existing member"}
+
+  defp do_create(_, %{minutes: n}) when not ((is_integer(n) and n > 0) or n == :max), do:
+    {:error, "minutes must be a positive integer or atom :max"}
+
+  defp do_create(_, %{user: %User{id: member_id}, minutes: minutes} = attrs) do
+    Multi.new()
+    ## (1) Get member's available balance
+    |> User.available_balance_with_lock(member_id)
+    ## (2) Calculate the number of minutes to be requested
+    |> Multi.run(:minutes, fn _repo, %{available_balance: remaining} ->
+      check_minutes(remaining, minutes)
+    end)
+    ## (3) Insert the new visit record for the given number of minutes
+    |> Multi.insert(:visit, fn %{minutes: request_minutes} ->
+      attrs =
+        attrs
+        |> Map.put(:minutes,   request_minutes)
+        |> Map.put(:member_id, member_id)
+      changeset(%__MODULE__{}, attrs)
+    end)
+    |> Repo.transaction()
+    |> case do
+      {:ok, %{visit: visit}}   -> {:ok,    visit}
+      {:error, _key, value, _} -> {:error, value}
+    end
+  end
+
+  defp check_minutes(remaining,    :max) when remaining > 0,        do: {:ok, remaining}
+  defp check_minutes(remaining, minutes) when remaining >= minutes, do: {:ok, minutes}
+  defp check_minutes(_,               _), do:
+    {:error, "member doesn't have enough minutes in the balance"}
+
 end

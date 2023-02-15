@@ -21,7 +21,7 @@ defmodule Papahome.VisitTest do
       assert     60 = User.requested_minutes(id)
 
       # Check that the member only has 40 minutes left
-      assert     40 = User.available_minutes(user)
+      assert     40 = User.available_balance(user)
     end
 
     test "fails for a member that doesn't have enough balance" do
@@ -106,5 +106,5 @@ defmodule Papahome.VisitTest do
     end
   end
 
-  defp date(), do: DateTime.utc_now() |> DateTime.add(1, :day) |> DateTime.truncate(:second)
+  defp date, do: DateTime.utc_now() |> DateTime.add(1, :day) |> DateTime.truncate(:second)
 end
