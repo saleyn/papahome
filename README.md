@@ -39,7 +39,8 @@ assignment we will store the tasks in a single field on the `visit` record, even
 though, this design violates the 1st normal form of db normalization.
 
 - If a member is simultaneously a pal, then the pal cannot fulfill his/her own
-minutes and his own visit requests are not visible to him/herself.
+minutes and their own visit requests are not included in the query of available
+visit requests for fulfillment.
 
 - We assume that dates are in UTC time zone.
 
@@ -221,7 +222,7 @@ Created visit for member benny@gmail.com: ID=1
 $ ./papahome create visit benny@gmail.com --minutes=max --task=conversation
 Created visit for member benny@gmail.com: ID=2
 
-# Check that a member cannot create visits if there's not enough minutes in the balance
+# Check that a member cannot create visits if they don't have enough minutes left
 $ ./papahome create visit benny@gmail.com --minutes=10 --task=conversation
 ERROR: member doesn't have enough minutes in the balance
 
