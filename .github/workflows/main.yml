@@ -55,6 +55,8 @@ jobs:
         mix local.hex --force
         mix deps.get
     - name: Run dialyzer
-      run:  mix dialyzer
+      run:  |
+        mix deps.get
+        mix dialyzer
     - name: Run tests
       run:  mix test
