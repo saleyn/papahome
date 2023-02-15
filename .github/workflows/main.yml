@@ -41,7 +41,12 @@ jobs:
       uses: actions/cache@v1
       id: mix-cache # id to use in retrieve action
       with:
-        path: deps
+        path: |
+          "$HOME/.mix/rebar"
+          "$HOME/.mix/rebar3"
+          "$HOME/.mix/archives/hex-*"
+          deps
+          _build
         key: ${{ runner.os }}-${{ matrix.otp }}-${{ matrix.elixir }}-mix-${{ hashFiles(format('{0}{1}', github.workspace, '/mix.lock')) }}
     - name: Install Dependencies
       if: steps.mix-cache.outputs.cache-hit != 'true'

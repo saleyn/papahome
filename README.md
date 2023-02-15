@@ -220,13 +220,13 @@ ERROR: no visits available at this time
 
 $ ./papahome list pal transactions alex@gmail.com
 ID        | FulfillDate          | Member               | Pal                  | Minutes | Fee   | Description
-----------+---------------------+----------------------+----------------------+---------+-------+------------
+----------+----------------------+----------------------+----------------------+---------+-------+------------
 2         | 2023-02-15 22:12:21Z | benny@gmail.com      | alex@gmail.com       | 51      | 9     | fulfillment
 3         | 2023-02-15 22:12:45Z | benny@gmail.com      | alex@gmail.com       | 34      | 6     | fulfillment
 
 $ ./papahome list member transactions benny@gmail.com
 ID        | FulfillDate          | Member               | Pal                  | Minutes | Fee   | Description
-----------+---------------------+----------------------+----------------------+---------+-------+------------
+----------+----------------------+----------------------+----------------------+---------+-------+------------
 3         | 2023-02-15 22:57:05Z | benny@gmail.com      | alex@gmail.com       | 34      | 6     | fulfillment
 2         | 2023-02-15 22:56:59Z | benny@gmail.com      | alex@gmail.com       | 51      | 9     | fulfillment
 1         | 2023-02-14 22:56:45Z | benny@gmail.com      |                      | 100     | 0     | signup credit
@@ -236,7 +236,7 @@ added 100 to member: balance=100
 
 $ ./papahome list member transactions benny@gmail.com
 ID        | FulfillDate          | Member               | Pal                  | Minutes | Fee   | Description
-----------+---------------------+----------------------+----------------------+---------+-------+------------
+----------+----------------------+----------------------+----------------------+---------+-------+------------
 4         | 2023-02-14 22:58:12Z | benny@gmail.com      |                      | 100     | 0     | added minutes
 3         | 2023-02-15 22:57:05Z | benny@gmail.com      | alex@gmail.com       | 34      | 6     | fulfillment
 2         | 2023-02-15 22:56:59Z | benny@gmail.com      | alex@gmail.com       | 51      | 9     | fulfillment

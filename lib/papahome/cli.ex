@@ -259,7 +259,7 @@ defmodule Papahome.CLI do
 
   defp print_transactions(txns) do
     IO.puts("#{pad("ID", 9)} | FulfillDate          | #{pad("Member", 20)} | #{pad("Pal", 20)} | Minutes | Fee   | Description")
-    IO.puts("#{sep(9)}-+---------------------+-#{sep(20)}-+-#{sep(20)}-+---------+-------+#{sep(12)}")
+    IO.puts("#{sep(9)}-+----------------------+-#{sep(20)}-+-#{sep(20)}-+---------+-------+#{sep(12)}")
     Enum.each(txns, &print_txn(&1))
   end
 
