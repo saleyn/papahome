@@ -195,6 +195,19 @@ to create a member, a pal, request visit minutes, and fulfil a visit request.
 $ ./papahome create member benny@gmail.com --first-name=Ben --last-name=Worth
 Created member ID=1
 
+$ ./papahome create pal alex@gmail.com --first-name=Alex --last-name=Moore
+Created pal ID=2
+
+$ ./papahome create pal-member alice@gmail.com --first-name=Alice --last-name=Gore
+Created pal-member ID=3
+
+$ ./papahome list users
+ID        | Email                | FirstName            | LastName             | Mem | Pal | Balance
+----------+----------------------+----------------------+----------------------+-----+-----+--------
+1         | benny@gmail.com      | Ben                  | Worth                |  x  |     | 100
+2         | alex@gmail.com       | Alex                 | Moore                |     |  x  | 0
+3         | alice@gmail.com      | Alice                | Gore                 |  x  |  x  | 100
+
 $ ./papahome user benny@gmail.com
 User:     Ben Worth <benny@gmail.com>
 UserID:   1
@@ -202,26 +215,21 @@ IsMember: true
 IsPal:    false
 Balance:  100
 
-$ ./papahome create pal alex@gmail.com --first-name=Alex --last-name=Moore
-Created pal ID=2
-
-$ ./papahome list users
-ID        | Email                | FirstName            | LastName             | Mem | Pal | Balance
-----------+----------------------+----------------------+----------------------+-----+-----+--------
-1         | benny@gmail.com      | Ben                  | Worth                |  x  |     | 100
-2         | alex@gmail.com       | Alex                 | Moore                |     |  x  | 0
-
 $ ./papahome create visit benny@gmail.com --minutes=60 --task=companionship
 Created visit for member benny@gmail.com: ID=1
 
 $ ./papahome create visit benny@gmail.com --minutes=max --task=conversation
 Created visit for member benny@gmail.com: ID=2
 
+$ ./papahome create visit alice@gmail.com --minutes=50 --task=walking
+Created visit for member alice@gmail.com: ID=3
+
 $ ./papahome list visits
 ID        | Date                 | Minutes              | Member                         | Tasks
 ----------+----------------------+----------------------+--------------------------------+-------------
-1         | 2023-02-15 22:12:21Z | 60                   | benny@gmail.com                | companionship
-2         | 2023-02-15 22:12:45Z | 40                   | benny@gmail.com                | conversation
+1         | 2023-02-15 15:44:35Z | 60                   | benny@gmail.com                | companionship
+2         | 2023-02-15 15:44:43Z | 40                   | benny@gmail.com                | conversation
+3         | 2023-02-15 15:44:58Z | 50                   | alice@gmail.com                | walking
 
 $ ./papahome fulfill visit alex@gmail.com
 Visit fulfilled by pal alex@gmail.com: TxnID=2 Minutes=51 Fee=9
@@ -229,20 +237,27 @@ Visit fulfilled by pal alex@gmail.com: TxnID=2 Minutes=51 Fee=9
 $ ./papahome fulfill visit alex@gmail.com
 Visit fulfilled by pal alex@gmail.com: TxnID=3 Minutes=34 Fee=6
 
+$ ./papahome fulfill visit alice@gmail.com            # NOTE: Alice cannot fulfill her own visit requests!
+ERROR: no visits available at this time
+
+$ ./papahome fulfill visit alex@gmail.com             # NOTE: pal Alex can fulfill Alice's visit request
+Visit fulfilled by pal alex@gmail.com: TxnID=5 Minutes=43 Fee=7
+
 $ ./papahome fulfill visit alex@gmail.com
 ERROR: no visits available at this time
 
 $ ./papahome list pal transactions alex@gmail.com
 ID        | VisitDate            | Member               | Pal                  | Minutes | Fee   | Description
 ----------+----------------------+----------------------+----------------------+---------+-------+------------
-2         | 2023-02-15 22:12:21Z | benny@gmail.com      | alex@gmail.com       | 51      | 9     | fulfillment
-3         | 2023-02-15 22:12:45Z | benny@gmail.com      | alex@gmail.com       | 34      | 6     | fulfillment
+5         | 2023-02-15 15:44:58Z | alice@gmail.com      | alex@gmail.com       | 43      | 7     | fulfillment
+4         | 2023-02-15 15:44:43Z | benny@gmail.com      | alex@gmail.com       | 34      | 6     | fulfillment
+3         | 2023-02-15 15:44:35Z | benny@gmail.com      | alex@gmail.com       | 51      | 9     | fulfillment
 
 $ ./papahome list member transactions benny@gmail.com
 ID        | VisitDate            | Member               | Pal                  | Minutes | Fee   | Description
 ----------+----------------------+----------------------+----------------------+---------+-------+------------
-3         | 2023-02-15 22:57:05Z | benny@gmail.com      | alex@gmail.com       | 34      | 6     | fulfillment
-2         | 2023-02-15 22:56:59Z | benny@gmail.com      | alex@gmail.com       | 51      | 9     | fulfillment
+4         | 2023-02-15 15:44:43Z | benny@gmail.com      | alex@gmail.com       | 34      | 6     | fulfillment
+3         | 2023-02-15 15:44:35Z | benny@gmail.com      | alex@gmail.com       | 51      | 9     | fulfillment
 1         |                      | benny@gmail.com      |                      | 100     | 0     | signup credit
 
 $ ./papahome add minutes benny@gmail.com 100
@@ -251,8 +266,8 @@ added 100 to member: balance=100
 $ ./papahome list member transactions benny@gmail.com
 ID        | VisitDate            | Member               | Pal                  | Minutes | Fee   | Description
 ----------+----------------------+----------------------+----------------------+---------+-------+------------
-4         |                      | benny@gmail.com      |                      | 100     | 0     | added minutes
-3         | 2023-02-15 22:57:05Z | benny@gmail.com      | alex@gmail.com       | 34      | 6     | fulfillment
-2         | 2023-02-15 22:56:59Z | benny@gmail.com      | alex@gmail.com       | 51      | 9     | fulfillment
+6         |                      | benny@gmail.com      |                      | 100     | 0     | added minutes
+4         | 2023-02-15 15:44:43Z | benny@gmail.com      | alex@gmail.com       | 34      | 6     | fulfillment
+3         | 2023-02-15 15:44:35Z | benny@gmail.com      | alex@gmail.com       | 51      | 9     | fulfillment
 1         |                      | benny@gmail.com      |                      | 100     | 0     | signup credit
 ```
