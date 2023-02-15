@@ -21,4 +21,7 @@ dialyzer:
 run:
 	iex -S mix
 
+distclean:
+	rm -fr _build deps papahome
+
 .PHONY: test
