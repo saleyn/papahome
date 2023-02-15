@@ -260,14 +260,14 @@ defmodule Papahome.CLI do
   end
 
   defp print_transactions(txns) do
-    IO.puts("#{pad("ID", 9)} | FulfillDate          | #{pad("Member", 20)} | #{pad("Pal", 20)} | Minutes | Fee   | Description")
-    IO.puts("#{sep(9)}-+----------------------+-#{sep(20)}-+-#{sep(20)}-+---------+-------+#{sep(12)}")
+    IO.puts("#{pad("ID", 9)} | #{pad("VisitDate", 20)} | #{pad("Member", 20)} | #{pad("Pal", 20)} | Minutes | Fee   | Description")
+    IO.puts("#{sep(9)}-+-#{sep(20)}-+-#{sep(20)}-+-#{sep(20)}-+---------+-------+#{sep(12)}")
     Enum.each(txns, &print_txn(&1))
   end
 
   defp print_txn(%Transaction{
-    id: id, member: %User{email: member}, pal: pal,
-    fulfilled_at: date, minutes: minutes, fee_minutes: fee, description: descr
+    id:         id,   member:  %User{email: member}, pal: pal,
+    visited_at: date, minutes: minutes, fee_minutes: fee, description: descr
   }) do
     date = date && date |> DateTime.truncate(:second) |> DateTime.to_string()
     pal  = pal  && pal.email

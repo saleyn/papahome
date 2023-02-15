@@ -33,6 +33,14 @@ defmodule Papahome.UserTest do
       }} = Factory.create_pal()
     end
 
+    test "succeeds when user is a pal and a member" do
+      assert {:ok, %User{
+        is_member:       true,
+        is_pal:          true,
+        balance_minutes: 100,
+      }} = Factory.create_pal_member()
+    end
+
     test "succeeds to look up a user" do
       assert {:ok, %User{id: user_id}} = Factory.create_member()
       assert %User{id: id} = User.find("benny@gmail.com")

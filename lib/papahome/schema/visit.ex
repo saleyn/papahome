@@ -41,22 +41,40 @@ defmodule Papahome.Visit do
   end
 
   @doc """
-  List available visits requested by members that haven't been fulfilled by pals
+  List available visits requested by members that haven't been fulfilled by pals.
+
+  If this call is passed a `pal_id` (i.e. it's made by a pal who's incuiring
+  about available visits), it's assumed that a pal cannot see/fulfill his own
+  visit requests if he's also a member.
   """
-  def list_available(%DateTime{} = as_of_date \\ DateTime.utc_now()) do
+  def list_available(%DateTime{} = as_of_date \\ DateTime.utc_now(), pal_id \\ nil) do
+    # If pal_id is given, filter out matching member_id records
+    filter_out_pal_id = pal_id && dynamic([v], v.member_id != ^pal_id) || true
+
     from(v in __MODULE__,
       where:    is_nil(v.pal_id) and v.date >= ^as_of_date,
+      where:    ^filter_out_pal_id,
       order_by: v.inserted_at,
       preload:  [:member]
     )
     |> Repo.all()
   end
 
-  @doc "Get the next available visit"
-  def next_available(%DateTime{} = as_of_date \\ DateTime.utc_now()) do
+  @doc """
+  Get the next available visit
+
+  If this call is passed a `pal_id` (i.e. it's made by a pal who's incuiring
+  about available visits), it's assumed that a pal cannot see/fulfill his own
+  visit requests if he's also a member.
+  """
+  def next_available(%DateTime{} = as_of_date \\ DateTime.utc_now(), pal_id \\ nil) do
+    # If pal_id is given, filter out matching member_id records
+    filter_out_pal_id = pal_id && dynamic([v], v.member_id != ^pal_id) || true
+
     from(v in __MODULE__,
       where:    is_nil(v.pal_id) and v.date >= ^as_of_date,
-      order_by: v.inserted_at,
+      where:    ^filter_out_pal_id,
+      order_by: [v.inserted_at, v.date],
       limit:    1,
       preload:  [:member]
     )
@@ -140,8 +158,8 @@ defmodule Papahome.Visit do
       end
     end)
     ## (2) get the next available visit request
-    |> Multi.run(:visit, fn _repo, _changes ->
-      case next_available(as_of_date) do
+    |> Multi.run(:visit, fn _repo, %{pal: %{id: pal_id}} ->
+      case next_available(as_of_date, pal_id) do
         %__MODULE__{} = visit -> {:ok, visit}
         nil                   -> {:error, "no visits available at this time"}
       end
@@ -171,7 +189,7 @@ defmodule Papahome.Visit do
         description:  "fulfillment",
         minutes:      credit,
         fee_minutes:  fee,
-        fulfilled_at: visit.date,
+        visited_at:   visit.date,
         member_id:    visit.member.id,
         pal_id:       pal.id,
         visit_id:     visit.id,

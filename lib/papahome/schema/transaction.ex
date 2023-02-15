@@ -17,7 +17,7 @@ defmodule Papahome.Transaction do
     field      :description,  :string
     field      :minutes,      :integer, null: false
     field      :fee_minutes,  :integer, null: false
-    field      :fulfilled_at, :utc_datetime
+    field      :visited_at,   :utc_datetime
 
     timestamps()
   end
@@ -29,7 +29,7 @@ defmodule Papahome.Transaction do
   def changeset(%__MODULE__{} = transaction, params \\ %{}) do
     transaction
     |> cast(params,      [:member_id,   :pal_id, :visit_id, :description, :minutes,
-                          :fee_minutes, :fulfilled_at])
+                          :fee_minutes, :visited_at])
     |> validate_required([:member_id, :minutes, :fee_minutes])
   end
 
@@ -70,9 +70,8 @@ defmodule Papahome.Transaction do
   do
     %__MODULE__{}
     |> changeset(%{
-        member_id:    member.id, description: text,
-        minutes:      minutes,   fee_minutes: 0,
-        fulfilled_at: DateTime.utc_now() |> DateTime.truncate(:second)
+        member_id:  member.id, description: text,
+        minutes:    minutes,   fee_minutes: 0
       })
     |> Repo.insert()
   end

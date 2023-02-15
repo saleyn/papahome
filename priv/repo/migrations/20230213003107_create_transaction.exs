@@ -9,7 +9,7 @@ defmodule Papahome.Repo.Migrations.CreateTransaction do
       add :description,  :string,               comment: "Description of this transaction"
       add :minutes,      :integer, null: false, comment: "Minutes value for this transaction"
       add :fee_minutes,  :integer, null: false, comment: "Fee minutes charged"
-      add :fulfilled_at, :utc_datetime,         comment: "Timestamp when the visit was fulfilled"
+      add :visited_at,   :utc_datetime,         comment: "Timestamp when the visit was performed"
 
       timestamps()
     end
