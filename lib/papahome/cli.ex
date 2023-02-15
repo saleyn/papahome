@@ -234,6 +234,8 @@ defmodule Papahome.CLI do
         opts |> Keyword.get(String.to_existing_atom(key), key) |> to_string()
       end)
     end)
+    |> Enum.map(fn {_, [v|_]} -> v end)
+    |> Enum.join("\n")
     error(error)
   end
 
