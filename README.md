@@ -49,6 +49,11 @@ visit requests for fulfillment.
 The application we are going to build will store data in a database and use Ecto
 library to make changes to data.
 
+The database used for storing data is Postgres, and constitutes the only
+external dependency for this project.  The database engine can be easily changed
+to any other backend database (e.g. MySQL, Sqlite3, etc.) as long as Ecto has an
+adapter for it.
+
 For simplicity the application will be escriptized to present itself as a single
 embedded executable.
 
