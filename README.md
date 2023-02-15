@@ -95,6 +95,7 @@ variables `DB_USER`, `DB_PASS`, and `DB_NAME`.
 │   └── repo
 │       └── migrations            - database migration scripts
 ├── README.md
+├── mix.exs                       - main Elixir mix project file
 └── test                          - unit tests
 ```
 
@@ -175,7 +176,10 @@ add minutes MemberEmail Minutes
     Example: "add minutes some@email.com 100"
 ```
 
-Example:
+## Example
+
+Below we illustrate the CLI in action by a walk-trough of basic functionality
+to create a member, a pal, request visit minutes, and fulfil a visit request.
 
 ```
 $ ./papahome create member benny@gmail.com --first-name=Ben --last-name=Worth
