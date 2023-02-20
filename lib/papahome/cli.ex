@@ -88,7 +88,7 @@ defmodule Papahome.CLI do
 
   ## Create a member/pal
   defp parse(["create", user, email | rest]) when user in ["member", "pal", "pal-member", "member-pal"] do
-    opts = [first_name: :string, last_name: :string, balance_minutes: :integer]
+    opts = [first_name: :string, last_name: :string, balance: :integer]
     case OptionParser.parse(rest, strict: opts) do
       {attrs, [], []} ->
         balance = Keyword.get(attrs, :balance) || 0
